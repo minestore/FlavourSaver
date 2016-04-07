@@ -102,7 +102,7 @@ module FlavourSaver
     def evaluate_partial(node)
       _context = context
       _context = evaluate_argument(node.context) if node.context
-      if defined?(::Rails) 
+      if defined?(::Rails)
         context.send(:render, :partial => node.name, :object => _context)
       else
         partial = Partial.fetch(node.name)
@@ -114,20 +114,20 @@ module FlavourSaver
       end
     end
 
-    def evaluate_call(call, context=context, &block)
-      context = Helpers.decorate_with(context,@helpers,@locals) unless context.is_a? Helpers::Decorator
+    def evaluate_call(call, _context = context, &block)
+      _context = Helpers.decorate_with(_context,@helpers,@locals) unless _context.is_a? Helpers::Decorator
       case call
       when ParentCallNode
         depth = call.depth
         (2..depth).inject(parent) { |p| p.parent }.evaluate_call(call.to_callnode,&block)
       when LiteralCallNode
-        result = context.send(:[], call.name)
+        result = _context.send(:[], call.name)
         result = result.call(*call.arguments.map { |a| evaluate_argument(a) },&block) if result.respond_to? :call
         result
       when LocalVarNode
         result = private_variable_get(call.name)
       else
-        context.send(call.name, *call.arguments.map { |a| evaluate_argument(a) }, &block)
+        _context.send(call.name, *call.arguments.map { |a| evaluate_argument(a) }, &block)
       end
     end
 
@@ -164,14 +164,14 @@ module FlavourSaver
 
         # If the result is collectiony then act as an implicit
         # "each"
-        if result && result.respond_to?(:each) 
+        if result && result.respond_to?(:each)
           if result.respond_to?(:size) && (result.size > 0)
             r = []
             # Not using #each_with_index because the object might
             # not actually be an Enumerable
             count = 0
-            result.each do |e| 
-              r << block_runtime.contents(e, {'index' => count}) 
+            result.each do |e|
+              r << block_runtime.contents(e, {'index' => count})
               count += 1
             end
             result = r.join('')
